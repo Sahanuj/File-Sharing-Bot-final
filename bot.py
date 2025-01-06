@@ -42,7 +42,7 @@ class Bot(Client):
 
         if FORCE_SUB_CHANNEL:
             try:
-                link = https://t.me/Irasubscribers
+                link = 'https://t.me/Irasubscribers'
                 if not link:
                     await self.export_chat_invite_link(FORCE_SUB_CHANNEL)
                     link = (await self.get_chat(FORCE_SUB_CHANNEL)).invite_link
