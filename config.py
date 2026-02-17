@@ -29,9 +29,21 @@ PORT = os.environ.get("PORT", "8080")
 DB_URI = os.environ.get("DATABASE_URL", "")
 DB_NAME = os.environ.get("DATABASE_NAME", "filesharexbot")
 
-#force sub channel id, if you want enable force sub
+# force sub channel id, if you want enable force sub
 FORCE_SUB_CHANNEL = int(os.environ.get("FORCE_SUB_CHANNEL", "0"))
-JOIN_REQUEST_ENABLE = os.environ.get("JOIN_REQUEST_ENABLED", None)
+
+# supports multiple force sub chats (space or comma separated)
+_force_sub_chats = os.environ.get("FORCE_SUB_CHANNELS", "").replace(",", " ").split()
+try:
+    FORCE_SUB_CHANNELS = [int(chat_id) for chat_id in _force_sub_chats if int(chat_id) != 0]
+except ValueError:
+    raise Exception("FORCE_SUB_CHANNELS must contain valid chat IDs.")
+
+# backward compatibility with old single-chat variable
+if not FORCE_SUB_CHANNELS and FORCE_SUB_CHANNEL:
+    FORCE_SUB_CHANNELS = [FORCE_SUB_CHANNEL]
+
+JOIN_REQUEST_ENABLE = os.environ.get("JOIN_REQUEST_ENABLED", "False").lower() == "true"
 
 TG_BOT_WORKERS = int(os.environ.get("TG_BOT_WORKERS", "4"))
 
