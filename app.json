@@ -38,8 +38,12 @@
       "value": "-100"
     },
     "FORCE_SUB_CHANNEL":{
-      "description": "id of the channel or group, if you want enable force sub feature else put 0",
+      "description": "Legacy single ForceSub chat ID. Use 0 to disable or keep for backward compatibility.",
       "value": "0"
+    },
+    "FORCE_SUB_CHANNELS":{
+      "description": "Space/comma separated ForceSub chat IDs and/or public usernames. Example: -10011111 @mypublicchannel -10022222",
+      "value": ""
     },
     "START_MESSAGE": {
       "description": "Optional: start message of bot, use HTML parsemode format",
@@ -88,4 +92,3 @@
     }
   }
 }
-
