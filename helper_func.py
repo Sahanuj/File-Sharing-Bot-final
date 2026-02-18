@@ -139,5 +139,3 @@ async def delete_file(messages, client, process):
 
 
 subscribed = filters.create(is_subscribed)
-
-subscribed = filters.create(is_subscribed)
