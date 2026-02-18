@@ -8,8 +8,8 @@ from pyrogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton
 from pyrogram.errors import FloodWait, UserIsBlocked, InputUserDeactivated
 
 from bot import Bot
-from config import ADMINS, FORCE_MSG, START_MSG, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, START_PIC, AUTO_DELETE_TIME, AUTO_DELETE_MSG, JOIN_REQUEST_ENABLE,FORCE_SUB_CHANNEL
-from helper_func import subscribed,decode, get_messages, delete_file
+from config import ADMINS, FORCE_MSG, START_MSG, CUSTOM_CAPTION, DISABLE_CHANNEL_BUTTON, PROTECT_CONTENT, START_PIC, AUTO_DELETE_TIME, AUTO_DELETE_MSG
+from helper_func import subscribed, decode, get_messages, delete_file, get_unsubscribed_chats
 from database.database import add_user, del_user, full_userbase, present_user
 
 
@@ -161,25 +161,31 @@ REPLY_ERROR = """<code>Use this command as a replay to any telegram message with
 #=====================================================================================##
 
 
-@Bot.on_message(filters.command('start') & filters.private)
+@Bot.on_message(filters.command('start') & filters.private & ~subscribed)
 async def not_joined(client: Client, message: Message):
 
-    if bool(JOIN_REQUEST_ENABLE):
-        invite = await client.create_chat_invite_link(
-            chat_id=FORCE_SUB_CHANNEL,
-            creates_join_request=True
-        )
-        ButtonUrl = invite.invite_link
-    else:
-        ButtonUrl = client.invitelink
+    pending_chat_ids = await get_unsubscribed_chats(client, message.from_user.id)
+    if not pending_chat_ids:
+        return
 
-    buttons = [
-        [
-            InlineKeyboardButton(
-                "Join Channel",
-                url = ButtonUrl)
-        ]
-    ]
+    buttons = []
+
+    for index, chat_id in enumerate(pending_chat_ids, start=1):
+        button_url = getattr(client, "force_sub_join_links", {}).get(chat_id)
+
+        if button_url:
+            buttons.append([
+                InlineKeyboardButton(
+                    f"Join Channel/Group {index}",
+                    url=button_url
+                )
+            ])
+
+    if not buttons and getattr(client, "invitelink", None):
+        buttons.append([
+            InlineKeyboardButton("Join Channel", url=client.invitelink)
+        ])
+
 
     try:
         buttons.append(
@@ -257,4 +263,3 @@ Unsuccessful: <code>{unsuccessful}</code></b>"""
         msg = await message.reply(REPLY_ERROR)
         await asyncio.sleep(8)
         await msg.delete()
-
