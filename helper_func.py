@@ -6,25 +6,45 @@ import asyncio
 import logging 
 from pyrogram import filters
 from pyrogram.enums import ChatMemberStatus
-from config import FORCE_SUB_CHANNEL, ADMINS, AUTO_DELETE_TIME, AUTO_DEL_SUCCESS_MSG
+from config import FORCE_SUB_CHANNELS, ADMINS, AUTO_DELETE_TIME, AUTO_DEL_SUCCESS_MSG, JOIN_REQUEST_ENABLE
+from database.database import has_join_request
 from pyrogram.errors.exceptions.bad_request_400 import UserNotParticipant
 from pyrogram.errors import FloodWait
 
 async def is_subscribed(filter, client, update):
-    if not FORCE_SUB_CHANNEL:
+    if not FORCE_SUB_CHANNELS:
         return True
     user_id = update.from_user.id
     if user_id in ADMINS:
         return True
-    try:
-        member = await client.get_chat_member(chat_id = FORCE_SUB_CHANNEL, user_id = user_id)
-    except UserNotParticipant:
-        return False
+    
+    return len(await get_unsubscribed_chats(client, user_id)) == 0
 
-    if not member.status in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
-        return False
-    else:
-        return True
+
+async def get_unsubscribed_chats(client, user_id):
+    unsubscribed_chat_ids = []
+    if user_id in ADMINS:
+        return unsubscribed_chat_ids
+
+    for force_sub_chat_id in FORCE_SUB_CHANNELS:
+        try:
+            member = await client.get_chat_member(chat_id=force_sub_chat_id, user_id=user_id)
+        except UserNotParticipant:
+            if JOIN_REQUEST_ENABLE and await has_join_request(force_sub_chat_id, user_id):
+                continue
+            unsubscribed_chat_ids.append(force_sub_chat_id)
+            continue
+        except Exception:
+            if JOIN_REQUEST_ENABLE and await has_join_request(force_sub_chat_id, user_id):
+                continue
+            unsubscribed_chat_ids.append(force_sub_chat_id)
+            continue
+
+        if member.status not in [ChatMemberStatus.OWNER, ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.MEMBER]:
+            unsubscribed_chat_ids.append(force_sub_chat_id)
+
+    return unsubscribed_chat_ids
+
 
 async def encode(string):
     string_bytes = string.encode("ascii")
@@ -117,5 +137,7 @@ async def delete_file(messages, client, process):
 
     await process.edit_text(AUTO_DEL_SUCCESS_MSG)
 
+
+subscribed = filters.create(is_subscribed)
 
 subscribed = filters.create(is_subscribed)
